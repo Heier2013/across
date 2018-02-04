@@ -43,7 +43,7 @@ backup.sh
 =========
 
 - You must modify the config before run it
-- Backup MySQL/MariaDB/Percona datebases, files and directories
+- Backup MySQL/MariaDB/Percona/PostgreSQL datebases, files and directories
 - Backup file is encrypted with AES256-cbc with SHA1 message-digest (option)
 - Auto transfer backup file to Google Drive (need install `gdrive` command) (option)
 - Auto transfer backup file to FTP server (option)
@@ -53,11 +53,11 @@ backup.sh
 ```bash
 Install gdrive command step:
 
-For x86_64: 
+For x86_64:
 wget -O /usr/bin/gdrive http://dl.lamp.sh/files/gdrive-linux-x64
 chmod +x /usr/bin/gdrive
 
-For i386: 
+For i386:
 wget -O /usr/bin/gdrive http://dl.lamp.sh/files/gdrive-linux-386
 chmod +x /usr/bin/gdrive
 ```
