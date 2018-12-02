@@ -144,7 +144,6 @@ check_commands() {
             fi
         done
     fi
-    fi
 
     # check PgSQL command
     if ${PGSQLFLAG}; then
@@ -284,7 +283,7 @@ start_backup() {
     # Delete MySQL temporary dump file
     for sql in `ls ${TEMPDIR}*.sql`
     do
-        log "Delete MySQL temporary dump file: ${sql}"
+        log "Delete SQL temporary dump file: ${sql}"
         rm -f ${sql}
     done
 
