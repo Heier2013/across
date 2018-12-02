@@ -27,6 +27,12 @@ ENCRYPTFLG=true
 # openssl enc -aes256 -in [encrypted backup] -out decrypted_backup.tgz -pass pass:[backup password] -d -md sha1
 BACKUPPASS="mypassword"
 
+# Backup Mysql flag
+MYSQLFLAG=false
+
+# Backup PgSQL flag
+PGSQLFLAG=true
+
 # Directory to store backups
 LOCALDIR="/root/backups/"
 
@@ -75,13 +81,13 @@ FTP_PASS=""
 # For example: public_html
 FTP_DIR=""
 
-# PostgreSQL environment variables
+# PgSQL environment variables
 export PGUSER=postgres
 export PGPASSWORD='xxxxxx'
 export PGHOST=hostname
 export PGPORT=5432
 
-# Below is a list of PostgreSQL database name that will be backed up
+# Below is a list of PgSQL database name that will be backed up
 # If you want backup ALL databases, leave it blank.
 PGSQL_DATABASE_NAME[0]=""
 
@@ -100,7 +106,7 @@ TARFILE="${LOCALDIR}""$(hostname)"_"${BACKUPDATE}".tgz
 ENC_TARFILE="${TARFILE}.enc"
 # Backup MySQL dump file name
 SQLFILE="${TEMPDIR}mysql_${BACKUPDATE}.sql"
-# Backup PostgreSQL dump file name
+# Backup PgSQL dump file name
 PGSQLFILE="${TEMPDIR}pgsql_${BACKUPDATE}.sql"
 
 log() {
@@ -111,7 +117,9 @@ log() {
 # Check for list of mandatory binaries
 check_commands() {
     # This section checks for all of the binaries used in the backup
-    BINARIES=( cat cd du date dirname echo openssl mysql mysqldump pwd rm tar psql pg_dump pg_dumpall )
+    BINARIES=( cat cd du date dirname echo openssl pwd rm tar )
+    MYSQLBINARIES=( mysql mysqldump )
+    PGSQLBINARIES=( psql pg_dump pg_dumpall )
 
     # Iterate over the list of binaries, and if one isn't found, abort
     for BINARY in "${BINARIES[@]}"; do
@@ -125,6 +133,27 @@ check_commands() {
     GDRIVE_COMMAND=false
     if [ "$(command -v "gdrive")" ]; then
         GDRIVE_COMMAND=true
+    fi
+
+    # check MySQL command
+    if ${MYSQLFLAG}; then
+        for BINARY in "${MYSQLBINARIES[@]}"; do
+            if [ ! "$(command -v "$BINARY")" ]; then
+                log "$BINARY is not installed. Install it and try again"
+                exit 1
+            fi
+        done
+    fi
+    fi
+
+    # check PgSQL command
+    if ${PGSQLFLAG}; then
+        for BINARY in "${PGSQLBINARIES[@]}"; do
+            if [ ! "$(command -v "$BINARY")" ]; then
+                log "$BINARY is not installed. Install it and try again"
+                exit 1
+            fi
+        done
     fi
 
     # check ftp command
@@ -188,28 +217,28 @@ EOF
     fi
 }
 
-# Backup PostgreSQL databases
+# Backup PgSQL databases
 pgsql_backup() {
     if [ -z $PGUSER ]; then
-        log "PostgreSQL config not set, PostgreSQL backup skipped"
+        log "PgSQL config not set, PgSQL backup skipped"
     else
-        log "PostgreSQL dump start"
+        log "PgSQL dump start"
         psql 2>/dev/null <<EOF
 exit
 EOF
         if [ $? -ne 0 ]; then
-            log "PostgreSQL $PGUSER password is incorrect. Please check it and try again"
+            log "PgSQL $PGUSER password is incorrect. Please check it and try again"
             exit 1
         fi
 
         if [ "${PGSQL_DATABASE_NAME[*]}" == "" ]; then
             pg_dumpall > "${PGSQLFILE}" 2>/dev/null
             if [ $? -ne 0 ]; then
-                log "PostgreSQL all databases backup failed"
+                log "PgSQL all databases backup failed"
                 exit 1
             fi
-            log "PostgreSQL all databases dump file name: ${PGSQLFILE}"
-            #Add PostgreSQL backup dump file to BACKUP list
+            log "PgSQL all databases dump file name: ${PGSQLFILE}"
+            #Add PgSQL backup dump file to BACKUP list
             BACKUP=(${BACKUP[*]} ${PGSQLFILE})
         else
             for db in ${PGSQL_DATABASE_NAME[*]}
@@ -218,15 +247,15 @@ EOF
                 DBFILE="${TEMPDIR}pg_${db}_${BACKUPDATE}.sql"
                 pg_dump -d ${db} > "${DBFILE}" 2>/dev/null
                 if [ $? -ne 0 ]; then
-                    log "PostgreSQL database name [${db}] backup failed, please check database name is correct and try again"
+                    log "PgSQL database name [${db}] backup failed, please check database name is correct and try again"
                     exit 1
                 fi
-                log "PostgreSQL database name [${db}] dump file name: ${DBFILE}"
-                #Add PostgreSQL backup dump file to BACKUP list
+                log "PgSQL database name [${db}] dump file name: ${DBFILE}"
+                #Add PgSQL backup dump file to BACKUP list
                 BACKUP=(${BACKUP[*]} ${DBFILE})
             done
         fi
-        log "PostgreSQL dump completed"
+        log "PgSQL dump completed"
     fi
 }
 
